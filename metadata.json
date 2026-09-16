@@ -1,0 +1,6 @@
+{
+  "name": "IPTV Channel Checker & GitHub Actions",
+  "description": "Script Node.js e GitHub Actions para testar automaticamente playlists M3U IPTV e gerar channels-status.json",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

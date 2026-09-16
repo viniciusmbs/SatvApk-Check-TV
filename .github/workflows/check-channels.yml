@@ -1,0 +1,32 @@
+name: Check IPTV Channels
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Roda a cada 6 horas automaticamente
+  workflow_dispatch: # Permite que você clique em "Run workflow" manualmente quando quiser
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    # PERMISSÃO CRUCIAL PARA SALVAR O JSON NO REPOSITÓRIO:
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Channel Checker Script
+        run: node scripts/check-channels.js
+
+      - name: Commit and push updated status
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 Atualização automática do status dos canais IPTV"
+          file_pattern: channels-status.json
