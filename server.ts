@@ -239,6 +239,216 @@ app.post('/api/save-status', (req, res) => {
   }
 });
 
+// Helper para ler ou inicializar analytics-clicks.json
+function getAnalyticsFilePath(): string {
+  return path.join(process.cwd(), 'analytics-clicks.json');
+}
+
+function loadAnalyticsData(): any {
+  const filePath = getAnalyticsFilePath();
+  if (fs.existsSync(filePath)) {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
+      // continua para fallback
+    }
+  }
+  return {
+    totalClicks: 0,
+    lastUpdate: new Date().toISOString(),
+    ga4EventsFired: 0,
+    clicksByCity: [],
+    clicksByLink: [],
+    clicksByRegion: [],
+    recentClicks: [],
+  };
+}
+
+function saveAnalyticsData(data: any): void {
+  const filePath = getAnalyticsFilePath();
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+}
+
+// API Route: Retorna dados agregados de Analytics
+app.get('/api/analytics', (req, res) => {
+  try {
+    const data = loadAnalyticsData();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.json({
+      ...data,
+      uniqueCities: data.clicksByCity?.length || 0,
+      uniqueLinks: data.clicksByLink?.length || 0,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// API Route: Retorna IP real detectado da requisição
+app.get('/api/client-ip', (req, res) => {
+  const forwarded = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim();
+  const realIpHeader = (req.headers['x-real-ip'] as string);
+  const clientIp = (forwarded || realIpHeader || req.socket.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
+  return res.json({ ip: clientIp });
+});
+
+// API Route: Registra novo clique de canal/link/botão com IP real, localização e atualização dinâmica
+app.post('/api/track-click', (req, res) => {
+  try {
+    const { linkId, linkName, linkUrl, category = 'Geral', device = 'Smart TV / Desktop' } = req.body;
+
+    if (!linkName || !linkUrl) {
+      return res.status(400).json({ error: 'linkName e linkUrl são obrigatórios' });
+    }
+
+    // Extração precisa do IP do usuário
+    const forwarded = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim();
+    const realIpHeader = (req.headers['x-real-ip'] as string);
+    const clientIp = (req.body.ip || forwarded || realIpHeader || req.socket.remoteAddress || req.ip || '127.0.0.1').replace(/^::ffff:/, '');
+
+    const city = req.body.city || 'Desconhecida';
+    const state = req.body.state || '';
+    const region = req.body.region || 'Brasil';
+    const country = req.body.country || 'Brasil';
+
+    const data = loadAnalyticsData();
+    data.totalClicks = (data.totalClicks || 0) + 1;
+    data.ga4EventsFired = (data.ga4EventsFired || data.totalClicks);
+    data.lastUpdate = new Date().toISOString();
+
+    // 1. Atualizar Métricas por Cidade
+    data.clicksByCity = data.clicksByCity || [];
+    if (city && city !== 'Desconhecida') {
+      const cityIndex = data.clicksByCity.findIndex(
+        (c: any) => c.city.toLowerCase() === city.toLowerCase()
+      );
+      if (cityIndex >= 0) {
+        data.clicksByCity[cityIndex].count += 1;
+      } else {
+        data.clicksByCity.push({
+          city,
+          state,
+          region,
+          country,
+          count: 1,
+          percentage: 0,
+        });
+      }
+
+      // Recalcula percentuais de cidades e ordena por total de cliques
+      data.clicksByCity.forEach((c: any) => {
+        c.percentage = Number(((c.count / data.totalClicks) * 100).toFixed(1));
+      });
+      data.clicksByCity.sort((a: any, b: any) => b.count - a.count);
+    }
+
+    // 2. Atualizar Links Clicados
+    data.clicksByLink = data.clicksByLink || [];
+    const effectiveLinkId = linkId || `link-${linkName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const linkIndex = data.clicksByLink.findIndex(
+      (l: any) => l.linkId === effectiveLinkId || l.linkUrl === linkUrl || l.linkName.toLowerCase() === linkName.toLowerCase()
+    );
+
+    if (linkIndex >= 0) {
+      data.clicksByLink[linkIndex].count += 1;
+      data.clicksByLink[linkIndex].lastClicked = new Date().toISOString();
+      if (category && category !== 'Geral') {
+        data.clicksByLink[linkIndex].category = category;
+      }
+    } else {
+      data.clicksByLink.push({
+        linkId: effectiveLinkId,
+        linkName,
+        linkUrl,
+        category,
+        count: 1,
+        lastClicked: new Date().toISOString(),
+      });
+    }
+    data.clicksByLink.sort((a: any, b: any) => b.count - a.count);
+
+    // 3. Atualizar Contador de Cliques por Região
+    data.clicksByRegion = data.clicksByRegion || [];
+    if (region) {
+      const regionIndex = data.clicksByRegion.findIndex(
+        (r: any) => r.region.toLowerCase() === region.toLowerCase()
+      );
+      if (regionIndex >= 0) {
+        data.clicksByRegion[regionIndex].count += 1;
+      } else {
+        data.clicksByRegion.push({
+          region,
+          count: 1,
+          percentage: 0,
+        });
+      }
+
+      data.clicksByRegion.forEach((r: any) => {
+        r.percentage = Number(((r.count / data.totalClicks) * 100).toFixed(1));
+      });
+      data.clicksByRegion.sort((a: any, b: any) => b.count - a.count);
+    }
+
+    // 4. Salvar no histórico recente (máximo 100 eventos) com IP e localização real
+    const newEvent = {
+      id: req.body.id || `ev-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+      linkId: effectiveLinkId,
+      linkName,
+      linkUrl,
+      category,
+      ip: clientIp,
+      city,
+      state,
+      region,
+      country,
+      device,
+      gaEventSent: true,
+    };
+
+    data.recentClicks = [newEvent, ...(data.recentClicks || []).slice(0, 99)];
+
+    saveAnalyticsData(data);
+
+    console.log(`[Analytics] Clique registrado: "${linkName}" | IP: ${clientIp} | Local: ${city}/${state} | Total: ${data.totalClicks}`);
+
+    return res.json({
+      success: true,
+      totalClicks: data.totalClicks,
+      city,
+      ip: clientIp,
+      event: newEvent,
+      summary: {
+        ...data,
+        uniqueCities: data.clicksByCity?.length || 0,
+        uniqueLinks: data.clicksByLink?.length || 0,
+      },
+    });
+  } catch (err: any) {
+    console.error('Erro ao registrar clique:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// API Route: Resetar dados de Analytics para baseline
+app.post('/api/analytics-reset', (req, res) => {
+  try {
+    const baseline = {
+      totalClicks: 0,
+      lastUpdate: new Date().toISOString(),
+      ga4EventsFired: 0,
+      clicksByCity: [],
+      clicksByLink: [],
+      clicksByRegion: [],
+      recentClicks: [],
+    };
+    saveAnalyticsData(baseline);
+    return res.json({ success: true, message: 'Analytics resetado com sucesso' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // API Route: Parse M3U playlist from URL or text
 app.post('/api/parse-m3u', async (req, res) => {
   const { url, rawContent } = req.body;

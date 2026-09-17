@@ -60,5 +60,58 @@ export interface ChannelStatusResult {
   latencies?: Record<string, number>;
 }
 
-export type ActiveTab = 'guide' | 'code-script' | 'code-workflow' | 'status-json' | 'tester';
+export type ActiveTab = 'guide' | 'code-script' | 'code-workflow' | 'status-json' | 'tester' | 'analytics';
+
+export interface CityClickMetric {
+  city: string;
+  state: string;
+  region: string;
+  country: string;
+  count: number;
+  percentage: number;
+}
+
+export interface LinkClickMetric {
+  linkId: string;
+  linkName: string;
+  linkUrl: string;
+  category: string;
+  count: number;
+  lastClicked: string;
+}
+
+export interface RegionClickMetric {
+  region: string;
+  count: number;
+  percentage: number;
+}
+
+export interface ClickEventLog {
+  id: string;
+  timestamp: string;
+  linkId: string;
+  linkName: string;
+  linkUrl: string;
+  category: string;
+  ip?: string;
+  city: string;
+  state?: string;
+  region?: string;
+  country?: string;
+  device?: string;
+  gaEventSent?: boolean;
+}
+
+export interface AnalyticsSummary {
+  totalClicks: number;
+  uniqueCities: number;
+  uniqueLinks: number;
+  lastUpdate: string;
+  clicksByCity: CityClickMetric[];
+  clicksByLink: LinkClickMetric[];
+  clicksByRegion: RegionClickMetric[];
+  recentClicks: ClickEventLog[];
+  ga4MeasurementId?: string;
+  ga4EventsFired?: number;
+}
 

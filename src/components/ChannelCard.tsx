@@ -3,6 +3,7 @@ import { Star } from 'lucide-react';
 import { Channel, UiDensity } from '../types';
 import { getChannelLogo } from '../data/channelLogos';
 import { soundService } from '../services/soundService';
+import { trackLinkClick } from '../services/analyticsService';
 
 interface ChannelCardProps {
   channel: Channel;
@@ -75,6 +76,15 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
     } catch {
       // ignore
     }
+
+    // Registra métrica real no Analytics e GA4 com IP e Localização
+    trackLinkClick({
+      linkId: channel.id || `channel-${channel.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      linkName: channel.name,
+      linkUrl: channel.url,
+      category: channel.group || 'Canais IPTV',
+    });
+
     if (onSelect) {
       onSelect(channel);
     }
@@ -84,6 +94,12 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   // Ação 2: Alternar Favorito
   const handleToggleFavoriteAction = () => {
     soundService.playSelect();
+    trackLinkClick({
+      linkId: `fav-${encodeURIComponent(channel.name)}`,
+      linkName: `Favoritar: ${channel.name}`,
+      linkUrl: channel.url || '#favorito',
+      category: 'Favoritos',
+    });
     if (onToggleFavorite) {
       onToggleFavorite(channel.name);
     }

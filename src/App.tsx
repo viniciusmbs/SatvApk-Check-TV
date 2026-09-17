@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  BarChart3,
 } from 'lucide-react';
 import { m3uPlaylist as initialLocalPlaylist } from './data/playlist';
 import statusJson from './data/status.json';
@@ -21,6 +22,8 @@ import { ChannelTester } from './components/ChannelTester';
 import { SetupGuide } from './components/SetupGuide';
 import { CodeViewer } from './components/CodeViewer';
 import { SmartTvSimulatorTab } from './components/SmartTvSimulatorTab';
+import { AnalyticsTab } from './components/AnalyticsTab';
+import { initGoogleAnalytics, initGlobalClickTracker } from './services/analyticsService';
 import { Channel, ChannelCheckResult } from './types/iptv';
 import { checkChannelsScriptCode, checkChannelsWorkflowCode } from './data/repoCode';
 
@@ -66,13 +69,19 @@ function parseChannelsFromM3U(rawM3U: string): Channel[] {
   return channels;
 }
 
-type ActiveTab = 'tester' | 'tv-preview' | 'playlist-file' | 'code-script' | 'code-workflow' | 'status-json' | 'guide';
+type ActiveTab = 'tester' | 'tv-preview' | 'playlist-file' | 'code-script' | 'code-workflow' | 'status-json' | 'guide' | 'analytics';
 
 export default function App() {
   // Tab padrão: 1. Testador Interativo e Status
   const [activeTab, setActiveTab] = useState<ActiveTab>('tester');
   const [currentStatus, setCurrentStatus] = useState<ChannelStatusResult>(statusJson as ChannelStatusResult);
   
+  // Inicialização do Google Analytics 4 (GA4) e Rastreador Global de Cliques Reais
+  useEffect(() => {
+    initGoogleAnalytics();
+    initGlobalClickTracker();
+  }, []);
+
   // Playlist viva sincronizada diretamente do GitHub viniciusmbs/SatvApk
   const [playlistContent, setPlaylistContent] = useState<string>(initialLocalPlaylist);
   const [isSyncingGitHub, setIsSyncingGitHub] = useState<boolean>(false);
@@ -274,6 +283,19 @@ export default function App() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
+              activeTab === 'analytics'
+                ? 'bg-emerald-500 text-neutral-950 font-bold border-emerald-400 shadow-md shadow-emerald-500/20'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-900 border-transparent'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>3. Analytics Detalhada (GA4)</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('playlist-file')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium transition-all cursor-pointer shrink-0 border ${
               activeTab === 'playlist-file'
@@ -282,7 +304,7 @@ export default function App() {
             }`}
           >
             <FileCode className="w-4 h-4" />
-            <span>3. Playlist Viva do GitHub</span>
+            <span>4. Playlist Viva do GitHub</span>
           </button>
 
           <button
@@ -295,7 +317,7 @@ export default function App() {
             }`}
           >
             <Terminal className="w-4 h-4" />
-            <span>4. scripts/check-channels.js</span>
+            <span>5. scripts/check-channels.js</span>
           </button>
 
           <button
@@ -308,7 +330,7 @@ export default function App() {
             }`}
           >
             <GitMerge className="w-4 h-4" />
-            <span>5. .github/workflows/check-channels.yml</span>
+            <span>6. .github/workflows/check-channels.yml</span>
           </button>
 
           <button
@@ -321,7 +343,7 @@ export default function App() {
             }`}
           >
             <FileJson className="w-4 h-4" />
-            <span>6. channels-status.json</span>
+            <span>7. channels-status.json</span>
           </button>
 
           <button
@@ -334,7 +356,7 @@ export default function App() {
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>7. Guia Passo a Passo</span>
+            <span>8. Guia Passo a Passo</span>
           </button>
         </nav>
 
@@ -359,7 +381,10 @@ export default function App() {
             />
           )}
 
-          {/* Aba 3: Playlist Viva do GitHub */}
+          {/* Aba 3: Analytics Detalhada de Cliques e Google Analytics (GA4) */}
+          {activeTab === 'analytics' && <AnalyticsTab />}
+
+          {/* Aba 4: Playlist Viva do GitHub */}
           {activeTab === 'playlist-file' && (
             <CodeViewer
               title="Playlist Viva do GitHub (viniciusmbs/SatvApk)"
@@ -370,7 +395,7 @@ export default function App() {
             />
           )}
 
-          {/* Aba 4: Script scripts/check-channels.js */}
+          {/* Aba 5: Script scripts/check-channels.js */}
           {activeTab === 'code-script' && (
             <CodeViewer
               title="Script Node.js de Verificação de Canais"
@@ -381,7 +406,7 @@ export default function App() {
             />
           )}
 
-          {/* Aba 5: Workflow .github/workflows/check-channels.yml */}
+          {/* Aba 6: Workflow .github/workflows/check-channels.yml */}
           {activeTab === 'code-workflow' && (
             <CodeViewer
               title="Workflow Automático do GitHub Actions"
@@ -392,7 +417,7 @@ export default function App() {
             />
           )}
 
-          {/* Aba 6: Arquivo channels-status.json */}
+          {/* Aba 7: Arquivo channels-status.json */}
           {activeTab === 'status-json' && (
             <CodeViewer
               title="Arquivo de Status Gerado (channels-status.json)"
@@ -403,7 +428,7 @@ export default function App() {
             />
           )}
 
-          {/* Aba 6: Guia Passo a Passo */}
+          {/* Aba 8: Guia Passo a Passo */}
           {activeTab === 'guide' && <SetupGuide />}
         </div>
       </div>

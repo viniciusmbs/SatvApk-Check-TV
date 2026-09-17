@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { RefreshCw, CheckCircle2, XCircle, Search, Download, Copy, Check, Tv, Activity, Radio, ExternalLink, Square, Save, Clock, ShieldCheck, Zap } from 'lucide-react';
 import { ChannelItem, ChannelStatusResult } from '../types';
+import { trackLinkClick } from '../services/analyticsService';
 
 interface ChannelTesterProps {
   initialStatus: ChannelStatusResult;
@@ -770,7 +771,15 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleCheckSingleChannel(channel)}
+                      onClick={() => {
+                        trackLinkClick({
+                          linkId: channel.id,
+                          linkName: channel.name,
+                          linkUrl: channel.url,
+                          category: channel.group,
+                        });
+                        handleCheckSingleChannel(channel);
+                      }}
                       disabled={checkingChannelId === channel.id}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-neutral-800 hover:bg-emerald-950 text-neutral-300 hover:text-emerald-300 border border-neutral-700 hover:border-emerald-600/50 transition-all cursor-pointer disabled:opacity-50"
                       title="Checar status deste canal na hora"
@@ -787,7 +796,15 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
                       href={channel.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-neutral-800 border border-transparent hover:border-neutral-700"
+                      onClick={() => {
+                        trackLinkClick({
+                          linkId: channel.id,
+                          linkName: channel.name,
+                          linkUrl: channel.url,
+                          category: channel.group,
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-neutral-800 border border-transparent hover:border-neutral-700 cursor-pointer"
                       title="Testar URL em nova aba"
                     >
                       <span>Abrir</span>

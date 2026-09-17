@@ -18,6 +18,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Channel, ChannelCheckResult } from '../types/iptv';
+import { trackLinkClick } from '../services/analyticsService';
 
 interface SmartTvSimulatorTabProps {
   channels: Channel[];
@@ -244,7 +245,15 @@ export const SmartTvSimulatorTab: React.FC<SmartTvSimulatorTabProps> = ({
                 return (
                   <button
                     key={channel.id}
-                    onClick={() => setSelectedChannel(channel)}
+                    onClick={() => {
+                      setSelectedChannel(channel);
+                      trackLinkClick({
+                        linkId: channel.id,
+                        linkName: channel.name,
+                        linkUrl: channel.url,
+                        category: channel.group,
+                      });
+                    }}
                     className={`text-left p-3.5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between ${
                       isSelected
                         ? 'bg-slate-900 border-purple-500 shadow-lg shadow-purple-500/10 ring-2 ring-purple-500/30'
