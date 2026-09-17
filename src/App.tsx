@@ -417,7 +417,7 @@ export default function App() {
             />
           )}
 
-          {/* Aba 7: Arquivo channels-status.json S*/}
+          {/* Aba 7: Arquivo channels-status.json*/}
           {activeTab === 'status-json' && (
             <CodeViewer
               title="Arquivo de Status Gerado (channels-status.json)"
