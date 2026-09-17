@@ -13,7 +13,7 @@ interface ChannelCardProps {
   density?: UiDensity;
 }
 
-// Normalização inteligente de títulos de canais para caberem perfeitamente nos botões
+// Normalização inteligente de títulos de canais para caberem perfeitamente nos botões estando se foi
 export function formatChannelDisplayName(name: string): string {
   if (!name) return '';
   const trimmed = name.trim();
