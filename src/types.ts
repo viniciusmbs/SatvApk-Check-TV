@@ -49,6 +49,20 @@ export interface ChannelItem {
   status?: 'online' | 'offline' | 'checking';
   latency?: number;
   statusCode?: number;
+  streamType?: StreamType;
+}
+
+export type StreamType = 'ts' | 'm3u8' | 'embed' | 'direct';
+
+export interface StabilityLogEntry {
+  id: string;
+  timestamp: string;
+  channelName: string;
+  event: 'recovered' | 'tested' | 'offline';
+  latency?: number;
+  status: 'online' | 'offline';
+  streamType?: StreamType;
+  details: string;
 }
 
 export interface ChannelStatusResult {

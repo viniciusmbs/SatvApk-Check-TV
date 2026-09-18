@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { RefreshCw, CheckCircle2, XCircle, Search, Download, Copy, Check, Tv, Activity, Radio, ExternalLink, Square, Save, Clock, ShieldCheck, Zap } from 'lucide-react';
-import { ChannelItem, ChannelStatusResult } from '../types';
+import { RefreshCw, CheckCircle2, XCircle, Search, Download, Copy, Check, Tv, Activity, Radio, ExternalLink, Square, Save, Clock, ShieldCheck, Zap, History, BellOff, Layers, FileCode, Volume2, VolumeX } from 'lucide-react';
+import { ChannelItem, ChannelStatusResult, StabilityLogEntry, StreamType } from '../types';
 import { trackLinkClick } from '../services/analyticsService';
+import { StabilityLogsModal } from './StabilityLogsModal';
+import { SilentToast, SilentToastMessage } from './SilentToast';
 
 interface ChannelTesterProps {
   initialStatus: ChannelStatusResult;
@@ -21,6 +23,65 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [checkingChannelId, setCheckingChannelId] = useState<string | null>(null);
   const [isServerRunningCheck, setIsServerRunningCheck] = useState(false);
+
+  // Filtro por tipo de stream (.ts, .m3u8, embed, direct)
+  const [streamTypeFilter, setStreamTypeFilter] = useState<'all' | 'ts' | 'm3u8' | 'embed' | 'direct'>('all');
+
+  // Histórico de Estabilidade & Quedas (100% silencioso)
+  const [stabilityLogs, setStabilityLogs] = useState<StabilityLogEntry[]>([]);
+  const [isStabilityModalOpen, setIsStabilityModalOpen] = useState(false);
+
+  // Notificações visuais silenciosas flutuantes (SEM nenhum bip/áudio por padrão)
+  const [silentToasts, setSilentToasts] = useState<SilentToastMessage[]>([]);
+
+  // Opção de Som (desativado por padrão para Smart TV)
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(false);
+
+  const playRecoveryBeep = (force = false) => {
+    if (!isSoundEnabled && !force) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      // Tom suave harmônico ascendente (nota C5 -> G5)
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.22);
+    } catch {
+      // Ignora silenciosamente se o navegador bloquear autoplay
+    }
+  };
+
+  const addSilentToast = (toast: Omit<SilentToastMessage, 'id' | 'timestamp'>) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    const newToast: SilentToastMessage = { ...toast, id, timestamp };
+    setSilentToasts((prev) => [newToast, ...prev.slice(0, 2)]);
+    setTimeout(() => {
+      setSilentToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
+  };
+
+  const handleDismissToast = (id: string) => {
+    setSilentToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Helper para detectar formato do stream
+  const getStreamType = (url: string): StreamType => {
+    const lower = url.toLowerCase();
+    if (lower.includes('.ts')) return 'ts';
+    if (lower.includes('.m3u8')) return 'm3u8';
+    if (lower.includes('embedtv') || lower.includes('rdcanais')) return 'embed';
+    return 'direct';
+  };
 
   // Auto-checagem contínua para canais Offline até ficarem Online
   const [isAutoRecheckOffline, setIsAutoRecheckOffline] = useState(true);
@@ -67,6 +128,7 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
         const currentStatus = initialStatus?.statuses?.[name] || 'offline';
         const isOnline = currentStatus === 'online';
         const latency = initialStatus?.latencies?.[name] ?? (isOnline ? 250 : undefined);
+        const streamType = getStreamType(cleanUrl);
 
         list.push({
           id: `ch-${list.length}`,
@@ -77,6 +139,7 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
           status: currentStatus,
           latency,
           statusCode: isOnline ? 200 : 404,
+          streamType,
         });
       }
     }
@@ -91,6 +154,25 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
   useEffect(() => {
     setStatusSummary(initialStatus);
     setChannels(parsedChannels);
+
+    // Registra evento de sincronização inicial no log de estabilidade
+    if (initialStatus?.lastUpdate) {
+      const time = new Date(initialStatus.lastUpdate).toLocaleTimeString('pt-BR');
+      setStabilityLogs((prev) => {
+        if (prev.length > 0) return prev;
+        return [
+          {
+            id: 'init-sync',
+            timestamp: time || new Date().toLocaleTimeString('pt-BR'),
+            channelName: 'Sincronização Inicial',
+            event: 'tested',
+            status: 'online',
+            latency: 180,
+            details: `Base sincronizada: ${initialStatus.online} canais online, ${initialStatus.offline} offline`,
+          },
+        ];
+      });
+    }
   }, [initialStatus, parsedChannels]);
 
   // Mantém channelsRef sempre atualizado para checagens assíncronas sem re-renders extras
@@ -252,9 +334,32 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
         body: JSON.stringify(newSummary),
       }).catch(() => {});
 
+      // Registra no histórico de estabilidade silencioso
+      const logEntry: StabilityLogEntry = {
+        id: `${Date.now()}-${Math.random()}`,
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+        channelName: channel.name,
+        event: isOnline ? 'recovered' : 'offline',
+        latency: isOnline ? latency : undefined,
+        status: isOnline ? 'online' : 'offline',
+        streamType: channel.streamType || getStreamType(channel.url),
+        details: isOnline
+          ? `Respondendo perfeitamente com ${latency}ms de latência.`
+          : `Não respondeu dentro do limite de 6s (${latency}ms).`,
+      };
+      setStabilityLogs((prev) => [logEntry, ...prev.slice(0, 99)]);
+
       if (isOnline) {
+        playRecoveryBeep();
         setSaveStatusFeedback(`🎉 Canal "${channel.name}" voltou a ficar ONLINE! (${latency}ms)`);
         setTimeout(() => setSaveStatusFeedback(null), 5000);
+
+        // Disparo de notificação visual 100% silenciosa
+        addSilentToast({
+          title: 'Canal Online Restabelecido',
+          message: `"${channel.name}" está respondendo normalmente (${latency}ms).`,
+          type: 'success',
+        });
       } else if (!isAuto) {
         setSaveStatusFeedback(`⚡ Canal "${channel.name}" checado na hora: OFFLINE (${latency}ms)`);
         setTimeout(() => setSaveStatusFeedback(null), 4000);
@@ -422,12 +527,26 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
     return Array.from(groups).sort();
   }, [channels]);
 
+  const streamTypeCounts = useMemo(() => {
+    const counts = { all: channels.length, ts: 0, m3u8: 0, embed: 0, direct: 0 };
+    channels.forEach((ch) => {
+      const t = ch.streamType || getStreamType(ch.url);
+      if (t === 'ts') counts.ts++;
+      else if (t === 'm3u8') counts.m3u8++;
+      else if (t === 'embed') counts.embed++;
+      else counts.direct++;
+    });
+    return counts;
+  }, [channels]);
+
   const filteredChannels = channels.filter(ch => {
     const matchesSearch = ch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           ch.url.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filter === 'all' || ch.status === filter;
     const matchesGroup = selectedGroup === 'all' || ch.group === selectedGroup;
-    return matchesSearch && matchesStatus && matchesGroup;
+    const channelStreamType = ch.streamType || getStreamType(ch.url);
+    const matchesStreamType = streamTypeFilter === 'all' || channelStreamType === streamTypeFilter;
+    return matchesSearch && matchesStatus && matchesGroup && matchesStreamType;
   });
 
   const availability = totalCount > 0
@@ -692,6 +811,134 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
             <Download className="w-3.5 h-3.5" />
             <span>Baixar JSON</span>
           </button>
+
+          {/* Botão de Histórico de Estabilidade & Quedas */}
+          <button
+            onClick={() => setIsStabilityModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-neutral-800/90 hover:bg-neutral-700 text-neutral-200 hover:text-white text-xs font-semibold rounded-xl border border-neutral-700 transition-all cursor-pointer shadow-sm"
+            title="Abrir histórico e log de estabilidade (100% silencioso)"
+          >
+            <History className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Histórico de Quedas</span>
+            {stabilityLogs.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                {stabilityLogs.length}
+              </span>
+            )}
+          </button>
+
+          {/* Botão de Interruptor de Som (Opcional - Mudo por padrão para Smart TV) */}
+          <button
+            onClick={() => {
+              const next = !isSoundEnabled;
+              setIsSoundEnabled(next);
+              if (next) {
+                playRecoveryBeep(true); // Toca uma demonstração suave ao ativar
+                addSilentToast({
+                  title: 'Aviso Sonoro Ativado',
+                  message: 'O robô emitirá um bip suave quando um canal voltar a ficar online.',
+                  type: 'info',
+                });
+              } else {
+                addSilentToast({
+                  title: 'Modo 100% Silencioso',
+                  message: 'Avisos sonoros desativados para não interferir na TV.',
+                  type: 'info',
+                });
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+              isSoundEnabled
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-700/80 ring-1 ring-emerald-500/40 shadow-sm'
+                : 'bg-neutral-800/80 text-neutral-400 hover:text-white border-neutral-700'
+            }`}
+            title={isSoundEnabled ? 'Clique para desativar o som (Modo Silencioso TV)' : 'Clique para ativar o aviso sonoro (Bip)'}
+          >
+            {isSoundEnabled ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Bip Sonoro: LIGADO</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-neutral-400" />
+                <span>Bip Sonoro: DESLIGADO</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Barra de Filtro por Tipo de Stream (.ts, .m3u8, embed, direct) */}
+      <div className="bg-neutral-900/70 border border-neutral-800/80 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <Layers className="w-4 h-4 text-emerald-400" />
+          <span className="font-semibold text-white">Formato do Stream:</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => setStreamTypeFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              streamTypeFilter === 'all'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950'
+                : 'bg-neutral-950 text-neutral-400 hover:text-white border border-neutral-800'
+            }`}
+          >
+            Todos ({streamTypeCounts.all})
+          </button>
+
+          <button
+            onClick={() => setStreamTypeFilter('ts')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              streamTypeFilter === 'ts'
+                ? 'bg-purple-600 text-white shadow-md shadow-purple-950'
+                : 'bg-neutral-950 text-neutral-400 hover:text-purple-300 border border-neutral-800'
+            }`}
+            title="Canais de transporte direto MPEG-TS ideais para Smart TV e TV Box"
+          >
+            <FileCode className="w-3.5 h-3.5 text-purple-400" />
+            <span>MPEG-TS (.ts) ({streamTypeCounts.ts})</span>
+          </button>
+
+          <button
+            onClick={() => setStreamTypeFilter('m3u8')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              streamTypeFilter === 'm3u8'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-950'
+                : 'bg-neutral-950 text-neutral-400 hover:text-blue-300 border border-neutral-800'
+            }`}
+            title="Canais HLS .m3u8"
+          >
+            <Activity className="w-3.5 h-3.5 text-blue-400" />
+            <span>HLS (.m3u8) ({streamTypeCounts.m3u8})</span>
+          </button>
+
+          <button
+            onClick={() => setStreamTypeFilter('embed')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              streamTypeFilter === 'embed'
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950'
+                : 'bg-neutral-950 text-neutral-400 hover:text-cyan-300 border border-neutral-800'
+            }`}
+            title="Canais com players Web Embed (EmbedTV, RDCanais)"
+          >
+            <Tv className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Embed Web ({streamTypeCounts.embed})</span>
+          </button>
+
+          <button
+            onClick={() => setStreamTypeFilter('direct')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              streamTypeFilter === 'direct'
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-950'
+                : 'bg-neutral-950 text-neutral-400 hover:text-amber-300 border border-neutral-800'
+            }`}
+            title="Canais com links diretos HTTP/HTTPS"
+          >
+            <Radio className="w-3.5 h-3.5 text-amber-400" />
+            <span>Diretos HTTP ({streamTypeCounts.direct})</span>
+          </button>
         </div>
       </div>
 
@@ -893,10 +1140,39 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <h4 className="text-sm font-bold text-white truncate" title={channel.name}>
                         {channel.name}
                       </h4>
+                      {(() => {
+                        const sType = channel.streamType || getStreamType(channel.url);
+                        if (sType === 'ts') {
+                          return (
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60 shrink-0">
+                              TS
+                            </span>
+                          );
+                        }
+                        if (sType === 'm3u8') {
+                          return (
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60 shrink-0">
+                              M3U8
+                            </span>
+                          );
+                        }
+                        if (sType === 'embed') {
+                          return (
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 shrink-0">
+                              EMBED
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700 shrink-0">
+                            HTTP
+                          </span>
+                        );
+                      })()}
                     </div>
                     {channel.group && (
                       <span className="inline-block text-[10px] text-neutral-400 bg-neutral-950 border border-neutral-800 px-2 py-0.5 rounded-md mt-1">
@@ -1031,6 +1307,17 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
           </div>
         )}
       </div>
+
+      {/* Modal de Histórico de Estabilidade & Quedas */}
+      <StabilityLogsModal
+        isOpen={isStabilityModalOpen}
+        onClose={() => setIsStabilityModalOpen(false)}
+        logs={stabilityLogs}
+        onClearLogs={() => setStabilityLogs([])}
+      />
+
+      {/* Notificações Visuais Silenciosas Flutuantes (Toast) */}
+      <SilentToast toasts={silentToasts} onDismiss={handleDismissToast} />
     </div>
   );
 }
