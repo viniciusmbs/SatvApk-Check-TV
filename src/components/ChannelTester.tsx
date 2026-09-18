@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { RefreshCw, CheckCircle2, XCircle, Search, Download, Copy, Check, Tv, Activity, Radio, ExternalLink, Square, Save, Clock, ShieldCheck, Zap } from 'lucide-react';
 import { ChannelItem, ChannelStatusResult } from '../types';
 import { trackLinkClick } from '../services/analyticsService';
@@ -21,6 +21,16 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [checkingChannelId, setCheckingChannelId] = useState<string | null>(null);
   const [isServerRunningCheck, setIsServerRunningCheck] = useState(false);
+
+  // Auto-checagem contínua para canais Offline até ficarem Online
+  const [isAutoRecheckOffline, setIsAutoRecheckOffline] = useState(true);
+  const [autoRecheckInterval, setAutoRecheckInterval] = useState(6); // intervalo padrão em segundos
+  const [offlineAttempts, setOfflineAttempts] = useState<Record<string, number>>({});
+  const [recheckingOfflineChannelId, setRecheckingOfflineChannelId] = useState<string | null>(null);
+  const [lastAutoCheckTime, setLastAutoCheckTime] = useState<string>('');
+  const isAutoRecheckingRunningRef = useRef(false);
+  const channelsRef = useRef<ChannelItem[]>([]);
+
   // Ritmo exclusivamente pausado (350ms) para permitir identificação clara de cada canal e link
   const checkSpeed = 350;
   const abortTestRef = useRef(false);
@@ -82,6 +92,11 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
     setStatusSummary(initialStatus);
     setChannels(parsedChannels);
   }, [initialStatus, parsedChannels]);
+
+  // Mantém channelsRef sempre atualizado para checagens assíncronas sem re-renders extras
+  useEffect(() => {
+    channelsRef.current = channels;
+  }, [channels]);
 
   // Interromper sincronização
   const handleStopTest = () => {
@@ -180,10 +195,12 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
   };
 
   /**
-   * Checagem instantânea de um único canal (na hora, sem esperar fila ou cron)
+   * Checagem de um único canal (na hora manualmente ou via loop automático)
    */
-  const handleCheckSingleChannel = async (channel: ChannelItem) => {
-    setCheckingChannelId(channel.id);
+  const handleCheckSingleChannel = async (channel: ChannelItem, isAuto = false): Promise<boolean> => {
+    if (!isAuto) {
+      setCheckingChannelId(channel.id);
+    }
     try {
       const res = await fetch('/api/check-stream', {
         method: 'POST',
@@ -195,8 +212,8 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
       const isOnline = Boolean(data.online);
       const latency = Number(data.latency) || (isOnline ? 250 : 0);
 
-      const updatedChannels = channels.map((c) => {
-        if (c.id === channel.id) {
+      const updatedChannels = channelsRef.current.map((c) => {
+        if (c.id === channel.id || c.name === channel.name) {
           return {
             ...c,
             status: (isOnline ? 'online' : 'offline') as 'online' | 'offline',
@@ -235,15 +252,78 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
         body: JSON.stringify(newSummary),
       }).catch(() => {});
 
-      setSaveStatusFeedback(`⚡ Canal "${channel.name}" checado na hora: ${isOnline ? 'ONLINE' : 'OFFLINE'} (${latency}ms)`);
-      setTimeout(() => setSaveStatusFeedback(null), 4000);
+      if (isOnline) {
+        setSaveStatusFeedback(`🎉 Canal "${channel.name}" voltou a ficar ONLINE! (${latency}ms)`);
+        setTimeout(() => setSaveStatusFeedback(null), 5000);
+      } else if (!isAuto) {
+        setSaveStatusFeedback(`⚡ Canal "${channel.name}" checado na hora: OFFLINE (${latency}ms)`);
+        setTimeout(() => setSaveStatusFeedback(null), 4000);
+      }
+
+      return isOnline;
     } catch {
-      setSaveStatusFeedback(`❌ Erro ao testar o canal "${channel.name}"`);
-      setTimeout(() => setSaveStatusFeedback(null), 4000);
+      if (!isAuto) {
+        setSaveStatusFeedback(`❌ Erro ao testar o canal "${channel.name}"`);
+        setTimeout(() => setSaveStatusFeedback(null), 4000);
+      }
+      return false;
     } finally {
-      setCheckingChannelId(null);
+      if (!isAuto) {
+        setCheckingChannelId(null);
+      }
     }
   };
+
+  /**
+   * Executa a passagem do loop automático rechecando os canais offline até ficarem online
+   */
+  const runAutoRecheckOfflinePass = useCallback(async () => {
+    if (isAutoRecheckingRunningRef.current) return;
+
+    const currentOffline = channelsRef.current.filter((c) => c.status === 'offline');
+    if (currentOffline.length === 0) return;
+
+    isAutoRecheckingRunningRef.current = true;
+    for (const channel of currentOffline) {
+      if (!isAutoRecheckOffline) break;
+
+      setRecheckingOfflineChannelId(channel.id);
+      setOfflineAttempts((prev) => ({
+        ...prev,
+        [channel.id]: (prev[channel.id] || 0) + 1,
+      }));
+
+      await handleCheckSingleChannel(channel, true);
+      setLastAutoCheckTime(new Date().toLocaleTimeString('pt-BR'));
+
+      // Pausa leve e pausada entre canais
+      await new Promise((r) => setTimeout(r, 700));
+    }
+
+    setRecheckingOfflineChannelId(null);
+    isAutoRecheckingRunningRef.current = false;
+  }, [isAutoRecheckOffline, statusSummary, onStatusUpdate]);
+
+  // Hook que executa o auto-recheck continuamente em loop até os canais ficarem online
+  useEffect(() => {
+    if (!isAutoRecheckOffline) return;
+
+    const hasOffline = channels.some((c) => c.status === 'offline');
+    if (!hasOffline) return;
+
+    const initialTimer = setTimeout(() => {
+      runAutoRecheckOfflinePass();
+    }, 1500);
+
+    const intervalTimer = setInterval(() => {
+      runAutoRecheckOfflinePass();
+    }, autoRecheckInterval * 1000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [isAutoRecheckOffline, autoRecheckInterval, runAutoRecheckOfflinePass, channels]);
 
   /**
    * Executa o robô completo no servidor agora mesmo
@@ -631,6 +711,108 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
         </div>
       )}
 
+      {/* Banner de Auto-Checagem Contínua de Canais Offline */}
+      {offlineCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-950/40 via-neutral-900 to-amber-950/30 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start md:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+              <RefreshCw className={`w-5 h-5 ${isAutoRecheckOffline ? 'animate-spin' : ''}`} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  Auto-Checagem Automática de Offline
+                </h4>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border ${
+                  isAutoRecheckOffline
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-neutral-800 text-neutral-400 border-neutral-700'
+                }`}>
+                  {isAutoRecheckOffline ? '● LOOP ATIVO' : 'PAUSADO'}
+                </span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                  {offlineCount} canal{offlineCount > 1 ? 'is' : ''} offline
+                </span>
+              </div>
+              <p className="text-xs text-neutral-300 mt-1">
+                {isAutoRecheckOffline ? (
+                  recheckingOfflineChannelId ? (
+                    <span className="text-amber-300 font-medium">
+                      Testando canal em loop agora: <strong>{channels.find(c => c.id === recheckingOfflineChannelId)?.name}</strong> (Tentativa #{offlineAttempts[recheckingOfflineChannelId] || 1})...
+                    </span>
+                  ) : (
+                    <span>
+                      Rechecando os {offlineCount} canais offline automaticamente a cada {autoRecheckInterval}s até ficarem online.
+                      {lastAutoCheckTime && ` Última verificação: ${lastAutoCheckTime}.`}
+                    </span>
+                  )
+                ) : (
+                  <span>Auto-checagem em espera. Ative o loop para monitorar continuamente até os canais ficarem online.</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Seletor de Intervalo */}
+            <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-xl p-1 text-xs">
+              <span className="text-[10px] text-neutral-400 px-2">Intervalo:</span>
+              {[5, 10, 20].map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => setAutoRecheckInterval(sec)}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${
+                    autoRecheckInterval === sec
+                      ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+
+            {/* Toggle Ativar / Pausar */}
+            <button
+              onClick={() => setIsAutoRecheckOffline(!isAutoRecheckOffline)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                isAutoRecheckOffline
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
+                  : 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isAutoRecheckOffline ? 'animate-spin' : ''}`} />
+              <span>{isAutoRecheckOffline ? 'Pausar Auto-Checar' : 'Ativar Auto-Checar'}</span>
+            </button>
+
+            {/* Forçar Checagem Agora */}
+            <button
+              onClick={() => runAutoRecheckOfflinePass()}
+              disabled={isAutoRecheckingRunningRef.current}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-950 disabled:opacity-50"
+              title="Testar todos os canais offline agora mesmo"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current text-amber-300" />
+              <span>Checar Offline Agora</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mensagem quando todos os canais estão online no filtro offline */}
+      {filter === 'offline' && offlineCount === 0 && (
+        <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-2xl p-6 text-center space-y-2">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto text-xl font-bold">
+            ✓
+          </div>
+          <h3 className="text-sm font-bold text-white">Todos os canais estão online no momento!</h3>
+          <p className="text-xs text-neutral-400 max-w-md mx-auto">
+            Todos os 132 canais estão respondendo. Caso algum canal fique offline futuramente, o monitor automático rechecará continuamente até restabelecer.
+          </p>
+        </div>
+      )}
+
       {/* Group Pills */}
       {availableGroups.length > 1 && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
@@ -761,10 +943,22 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
                         )}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                        <span>Offline</span>
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                          <span>Offline</span>
+                        </span>
+                        {isAutoRecheckOffline && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <RefreshCw className={`w-2.5 h-2.5 ${recheckingOfflineChannelId === channel.id ? 'animate-spin' : ''}`} />
+                            <span>
+                              {recheckingOfflineChannelId === channel.id
+                                ? 'Testando'
+                                : `Loop #${offlineAttempts[channel.id] || 1}`}
+                            </span>
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -778,18 +972,30 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
                           linkUrl: channel.url,
                           category: channel.group,
                         });
-                        handleCheckSingleChannel(channel);
+                        handleCheckSingleChannel(channel, false);
                       }}
-                      disabled={checkingChannelId === channel.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-neutral-800 hover:bg-emerald-950 text-neutral-300 hover:text-emerald-300 border border-neutral-700 hover:border-emerald-600/50 transition-all cursor-pointer disabled:opacity-50"
-                      title="Checar status deste canal na hora"
+                      disabled={checkingChannelId === channel.id || recheckingOfflineChannelId === channel.id}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer disabled:opacity-60 ${
+                        recheckingOfflineChannelId === channel.id
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/60 ring-1 ring-amber-500/30'
+                          : isOnline
+                          ? 'bg-neutral-800 hover:bg-emerald-950 text-neutral-300 hover:text-emerald-300 border border-neutral-700 hover:border-emerald-600/50'
+                          : 'bg-rose-950/40 hover:bg-amber-950 text-rose-200 hover:text-amber-200 border border-rose-800/60 hover:border-amber-600/50'
+                      }`}
+                      title={isOnline ? "Checar status deste canal na hora" : "Checar manualmente ou aguardar auto-checagem em loop contínuo"}
                     >
-                      {checkingChannelId === channel.id ? (
-                        <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" />
+                      {checkingChannelId === channel.id || recheckingOfflineChannelId === channel.id ? (
+                        <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
                       ) : (
                         <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
                       )}
-                      <span>{checkingChannelId === channel.id ? 'Testando...' : 'Checar'}</span>
+                      <span>
+                        {checkingChannelId === channel.id
+                          ? 'Testando...'
+                          : recheckingOfflineChannelId === channel.id
+                          ? 'Auto-testando...'
+                          : 'Checar'}
+                      </span>
                     </button>
 
                     <a
