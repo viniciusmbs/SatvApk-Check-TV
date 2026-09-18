@@ -3,7 +3,10 @@ name: Check IPTV Channels
 on:
   schedule:
     - cron: '0 */6 * * *' # Roda a cada 6 horas automaticamente
-  workflow_dispatch: # Permite que você clique em "Run workflow" manualmente quando quiser
+  workflow_dispatch: # Permite clicar em "Run workflow" manualmente
+  push:
+    paths:
+      - 'src/data/playlist.ts' # Dispara IMEDIATAMENTE quando você altera a playlist no GitHub!
 
 jobs:
   check:

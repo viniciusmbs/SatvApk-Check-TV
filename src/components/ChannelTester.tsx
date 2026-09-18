@@ -54,9 +54,9 @@ export function ChannelTester({ initialStatus, playlistRaw, onStatusUpdate }: Ch
 
       if (name && cleanUrl) {
         // Status lido exclusivamente do arquivo oficial channels-status.json
-        const currentStatus = initialStatus.statuses[name] || 'offline';
+        const currentStatus = initialStatus?.statuses?.[name] || 'offline';
         const isOnline = currentStatus === 'online';
-        const latency = initialStatus.latencies?.[name] ?? (isOnline ? 250 : undefined);
+        const latency = initialStatus?.latencies?.[name] ?? (isOnline ? 250 : undefined);
 
         list.push({
           id: `ch-${list.length}`,

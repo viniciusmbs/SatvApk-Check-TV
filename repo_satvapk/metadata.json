@@ -1,6 +1,0 @@
-{
-  "name": "SATV - Fire TV & Web IPTV Streaming",
-  "description": "Aplicativo de IPTV ao vivo com suporte completo para Fire TV Stick, controle remoto D-Pad, tabulação ágil e reprodução de canais sem tela branca.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

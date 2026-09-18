@@ -88,9 +88,10 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [syncFeedback, setSyncFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Leitura Direta do JSON Oficial gerado pelo robô
+  // Leitura Direta do JSON Oficial gerado pelo robô (com fallback para GitHub Raw no Vercel)
   const loadOfficialStatus = useCallback(async () => {
     try {
+      // 1. Tenta carregar do próprio domínio local
       const res = await fetch(`/channels-status.json?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
@@ -100,32 +101,73 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error('Erro ao carregar channels-status.json:', err);
+      console.warn('Tentando fallback para GitHub Raw de channels-status.json...', err);
     }
+
+    try {
+      // 2. Fallback: carrega direto do repositório no GitHub (compatível com CORS e Vercel)
+      const ghRes = await fetch(`https://raw.githubusercontent.com/viniciusmbs/SatvApk/main/channels-status.json?t=${Date.now()}`);
+      if (ghRes.ok) {
+        const ghData = await ghRes.json();
+        if (ghData && ghData.statuses) {
+          setCurrentStatus(ghData);
+          return ghData;
+        }
+      }
+    } catch (ghErr) {
+      console.error('Erro ao carregar channels-status.json do GitHub Raw:', ghErr);
+    }
+
     return null;
   }, []);
 
-  // Puxar a playlist diretamente do GitHub em tempo real
+  // Puxar a playlist diretamente do GitHub em tempo real (compatível com Express local e Vercel estático)
   const syncFromGitHub = useCallback(async (isManual = false) => {
     setIsSyncingGitHub(true);
     try {
-      const res = await fetch(`/api/github-playlist?t=${Date.now()}`);
-      if (!res.ok) {
-        throw new Error(`Erro HTTP ${res.status}`);
+      let m3uText: string | null = null;
+      let channelCount = 0;
+
+      // Método 1: Tenta via backend Express (/api/github-playlist)
+      try {
+        const res = await fetch(`/api/github-playlist?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.m3uPlaylist) {
+            m3uText = data.m3uPlaylist;
+            channelCount = data.channelCount || (m3uText.split(/#EXTINF:/i).length - 1);
+          }
+        }
+      } catch {
+        // Ignora erro e tenta método 2 (Vercel / estático)
       }
-      const data = await res.json();
-      if (data.success && data.m3uPlaylist) {
-        setPlaylistContent(data.m3uPlaylist);
+
+      // Método 2: Se estiver no Vercel (sem backend Express), busca direto do GitHub Raw
+      if (!m3uText) {
+        const rawRes = await fetch(
+          `https://raw.githubusercontent.com/viniciusmbs/SatvApk/main/src/data/playlist.ts?t=${Date.now()}`
+        );
+        if (!rawRes.ok) {
+          throw new Error(`GitHub Raw retornou status ${rawRes.status}`);
+        }
+        const rawCode = await rawRes.text();
+        const match = rawCode.match(/export\s+const\s+m3uPlaylist\s*=\s*`([\s\S]*?)`;/);
+        m3uText = match ? match[1].trim() : rawCode;
+        channelCount = m3uText.split(/#EXTINF:/i).length - 1;
+      }
+
+      if (m3uText && m3uText.includes('#EXTINF')) {
+        setPlaylistContent(m3uText);
         const timeStr = new Date().toLocaleTimeString('pt-BR');
         setLastSyncTime(timeStr);
         setSyncFeedback({
-          message: `Playlist sincronizada diretamente do GitHub (${data.channelCount} canais)`,
+          message: `Playlist sincronizada diretamente do GitHub (${channelCount} canais)`,
           type: 'success',
         });
         // Atualiza status oficial também
         await loadOfficialStatus();
       } else {
-        throw new Error(data.error || 'Falha na resposta do GitHub');
+        throw new Error('Formato de playlist inválido retornado pelo GitHub');
       }
     } catch (err: any) {
       console.error('Erro na sincronização com GitHub:', err);
@@ -160,14 +202,14 @@ export default function App() {
   // Mapeamento de resultados para o Simulador Smart TV baseado no status oficial e na lista viva de canais
   const tvResults: Record<string, ChannelCheckResult> = {};
   liveChannels.forEach((ch) => {
-    const isOnline = currentStatus.statuses[ch.name] === 'online' || currentStatus.statuses[ch.id] === 'online';
-    const latency = currentStatus.latencies?.[ch.name] ?? (isOnline ? 250 : 0);
+    const isOnline = currentStatus?.statuses?.[ch.name] === 'online' || currentStatus?.statuses?.[ch.id] === 'online';
+    const latency = currentStatus?.latencies?.[ch.name] ?? (isOnline ? 250 : 0);
     tvResults[ch.id] = {
       online: isOnline,
       status: isOnline ? 200 : 404,
       latency: latency,
       statusText: isOnline ? '200 OK' : 'Offline',
-      checkedAt: currentStatus.lastUpdate,
+      checkedAt: currentStatus?.lastUpdate || new Date().toISOString(),
     };
   });
 
@@ -376,7 +418,7 @@ export default function App() {
             <SmartTvSimulatorTab
               channels={liveChannels}
               results={tvResults}
-              lastUpdated={new Date(currentStatus.lastUpdate).toLocaleTimeString()}
+              lastUpdated={currentStatus?.lastUpdate ? new Date(currentStatus.lastUpdate).toLocaleTimeString() : new Date().toLocaleTimeString()}
               onRefresh={() => syncFromGitHub(true)}
             />
           )}
@@ -436,7 +478,7 @@ export default function App() {
       {/* Rodapé Discreto */}
       <footer className="border-t border-neutral-900 py-4 text-center text-xs text-neutral-500">
         <p>
-          SatvApk IPTV Status Checker • {currentStatus.total} Canais monitorados • Repositório:{' '}
+          SatvApk IPTV Status Checker • {currentStatus?.total ?? liveChannels.length} Canais monitorados • Repositório:{' '}
           <a
             href="https://github.com/viniciusmbs/SatvApk"
             target="_blank"

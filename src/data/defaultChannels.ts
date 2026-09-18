@@ -11,7 +11,7 @@ export const DEFAULT_CHANNELS: Channel[] = [
   {
     "id": "ch-002",
     "name": "Band SP",
-    "url": "https://rdcanais.net/bandsp",
+    "url": "https://alerquina54105.embedtv.lat/bandsp",
     "group": "TV ABERTA & REGIONAIS"
   },
   {
@@ -71,7 +71,7 @@ export const DEFAULT_CHANNELS: Channel[] = [
   {
     "id": "ch-012",
     "name": "SBT MG ALTEROSA",
-    "url": "http://up.kiwi/351921603109/34939156/296876",
+    "url": "http://tjtor8411.com:80/Osiel123/Felicidade321/72621.ts",
     "group": "TV ABERTA & REGIONAIS"
   },
   {
@@ -197,373 +197,379 @@ export const DEFAULT_CHANNELS: Channel[] = [
   {
     "id": "ch-033",
     "name": "NatGeo Wild",
-    "url": "https://alerquina54105.embedtv.lat/natgeowild",
+    "url": "http://up.kiwi/351921603109/34939156/1260706.ts",
     "group": "DOCUMENTÁRIOS"
   },
   {
     "id": "ch-034",
     "name": "National Geographic",
-    "url": "https://alerquina54105.embedtv.lat/natgeo",
+    "url": "http://up.kiwi/351921603109/34939156/1260707.ts",
     "group": "DOCUMENTÁRIOS"
   },
   {
-    "id": "ch-036",
+    "id": "ch-035",
     "name": "TLC",
     "url": "https://rdcanais.net/tlc",
     "group": "DOCUMENTÁRIOS"
   },
   {
-    "id": "ch-037",
+    "id": "ch-036",
     "name": "Travel Box Brasil",
-    "url": "http://up.kiwi/351921603109/34939156/1320",
+    "url": "http://up.kiwi/351921603109/34939156/1320.ts",
     "group": "DOCUMENTÁRIOS"
   },
   {
-    "id": "ch-038",
+    "id": "ch-037",
     "name": "Band Sports",
     "url": "https://rdcanais.net/bandsports",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-039",
+    "id": "ch-038",
     "name": "Combate",
     "url": "https://alerquina54105.embedtv.lat/combate",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-040",
+    "id": "ch-039",
     "name": "DAZN",
     "url": "https://v1.rdse.rest/dazn",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-041",
+    "id": "ch-040",
     "name": "DAZN 2",
     "url": "https://v1.rdse.rest/dazn2",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-042",
+    "id": "ch-041",
     "name": "DAZN 3",
     "url": "https://v1.rdse.rest/dazn3",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-043",
+    "id": "ch-042",
     "name": "DAZN 4",
     "url": "https://v1.rdse.rest/dazn4",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-044",
-    "name": "DAZN 4",
+    "id": "ch-043",
+    "name": "DAZN 5",
     "url": "https://v1.rdse.rest/dazn5",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-045",
+    "id": "ch-044",
     "name": "ESPN",
     "url": "https://rdcanais.net/espn",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-046",
+    "id": "ch-045",
     "name": "ESPN 2",
     "url": "https://rdcanais.net/espn2",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-047",
+    "id": "ch-046",
     "name": "ESPN 3",
     "url": "https://rdcanais.net/espn3",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-048",
+    "id": "ch-047",
     "name": "ESPN 4",
     "url": "https://rdcanais.net/espn4",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-049",
+    "id": "ch-048",
     "name": "ESPN 5",
     "url": "https://alerquina54105.embedtv.lat/espn5",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-050",
+    "id": "ch-049",
     "name": "ESPN 6",
     "url": "https://alerquina54105.embedtv.lat/espn6",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-051",
+    "id": "ch-050",
     "name": "Fox Sports",
     "url": "https://alerquina54105.embedtv.lat/foxsports",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-052",
+    "id": "ch-051",
     "name": "Fox Sports 2",
     "url": "https://alerquina54105.embedtv.lat/foxsports2",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-053",
+    "id": "ch-052",
     "name": "Premiere",
     "url": "https://rdcanais.net/premiere",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-054",
+    "id": "ch-053",
     "name": "Premiere 2",
     "url": "https://rdcanais.net/premiere2",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-055",
+    "id": "ch-054",
     "name": "Premiere 3",
     "url": "https://rdcanais.net/premiere3",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-056",
+    "id": "ch-055",
     "name": "Premiere 4",
     "url": "https://rdcanais.net/premiere4",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-057",
+    "id": "ch-056",
     "name": "Premiere 5",
     "url": "https://rdcanais.net/premiere5",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-058",
+    "id": "ch-057",
     "name": "Premiere 6",
     "url": "https://rdcanais.net/premiere6",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-059",
+    "id": "ch-058",
     "name": "Premiere 7",
     "url": "https://rdcanais.net/premiere7",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-060",
+    "id": "ch-059",
     "name": "Premiere Clubes",
     "url": "https://rdcanais.net/premiereclubes",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-061",
+    "id": "ch-060",
     "name": "SportTV",
     "url": "https://v1.rdse.rest/sporttv",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-062",
+    "id": "ch-061",
     "name": "SportTV 2",
     "url": "https://v1.rdse.rest/sporttv2",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-063",
+    "id": "ch-062",
     "name": "SportTV 3",
     "url": "https://v1.rdse.rest/sporttv3",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-064",
+    "id": "ch-063",
     "name": "SportTV 4",
     "url": "https://v1.rdse.rest/sporttv4",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-065",
+    "id": "ch-064",
     "name": "SportTV 5",
     "url": "https://v1.rdse.rest/sporttv5",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-066",
+    "id": "ch-065",
     "name": "SportTV 6",
     "url": "https://v1.rdse.rest/sporttv6",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-067",
+    "id": "ch-066",
     "name": "Off",
     "url": "https://rdcanais.net/canaloff",
     "group": "ESPORTES & PPV"
   },
   {
-    "id": "ch-068",
+    "id": "ch-067",
     "name": "A&E",
     "url": "https://alerquina54105.embedtv.lat/ae",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-069",
+    "id": "ch-068",
     "name": "AMC",
     "url": "https://rdcanais.net/amc",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-070",
+    "id": "ch-069",
     "name": "Art 1",
     "url": "https://rdcanais.net/arte1",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-071",
+    "id": "ch-070",
     "name": "AXN",
     "url": "https://rdcanais.net/axn",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-072",
+    "id": "ch-071",
     "name": "Canal Brasil",
     "url": "https://rdcanais.net/canalbrasil",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-073",
+    "id": "ch-072",
     "name": "Cinemax",
     "url": "https://alerquina54105.embedtv.lat/cinemax",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-074",
+    "id": "ch-073",
     "name": "HBO",
     "url": "https://alerquina54105.embedtv.lat/hbo",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-075",
+    "id": "ch-074",
     "name": "HBO 2",
     "url": "https://alerquina54105.embedtv.lat/hbo2",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-076",
+    "id": "ch-075",
     "name": "HBO Family",
     "url": "https://alerquina54105.embedtv.lat/hbofamily",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-077",
+    "id": "ch-076",
     "name": "HBO Mundi",
     "url": "https://alerquina54105.embedtv.lat/hbomundi",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-078",
+    "id": "ch-077",
     "name": "HBO Plus",
     "url": "https://alerquina54105.embedtv.lat/hboplus",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-079",
+    "id": "ch-078",
     "name": "HBO Pop",
     "url": "https://alerquina54105.embedtv.lat/hbopop",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-080",
+    "id": "ch-079",
     "name": "HBO Signature",
     "url": "https://v1.rdse.rest/hbosignature",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-081",
+    "id": "ch-080",
     "name": "HBO Xtreme",
     "url": "https://alerquina54105.embedtv.lat/hboxtreme",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-082",
+    "id": "ch-081",
     "name": "Megapix",
     "url": "https://rdcanais.net/megapix",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-083",
+    "id": "ch-082",
     "name": "Paramount",
-    "url": "http://up.kiwi/351921603109/34939156/829",
+    "url": "http://up.kiwi/351921603109/34939156/829.ts",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-084",
+    "id": "ch-083",
     "name": "Sony Channel",
     "url": "https://alerquina54105.embedtv.lat/sonychannel",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-085",
+    "id": "ch-084",
     "name": "Space",
     "url": "https://rdcanais.net/space",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-086",
+    "id": "ch-085",
     "name": "TCM",
     "url": "https://alerquina54105.embedtv.lat/tcm",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-087",
+    "id": "ch-086",
     "name": "TNT",
     "url": "https://rdcanais.net/tnt",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-088",
+    "id": "ch-087",
     "name": "TNT Series",
     "url": "https://rdcanais.net/tntseries",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-089",
+    "id": "ch-088",
     "name": "Telecine Action",
     "url": "https://rdcanais.net/telecineaction",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-090",
+    "id": "ch-089",
     "name": "Telecine Cult",
     "url": "https://rdcanais.net/telecinecult",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-091",
+    "id": "ch-090",
     "name": "Telecine Fun",
     "url": "https://rdcanais.net/telecinefun",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-092",
+    "id": "ch-091",
     "name": "Telecine Pipoca",
     "url": "https://rdcanais.net/telecinepipoca",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-093",
+    "id": "ch-092",
     "name": "Telecine Premium",
     "url": "https://rdcanais.net/telecinepremium",
     "group": "FILMES & SÉRIES"
   },
   {
-    "id": "ch-094",
+    "id": "ch-093",
     "name": "Telecine Touch",
     "url": "https://rdcanais.net/telecinetouch",
     "group": "FILMES & SÉRIES"
   },
   {
+    "id": "ch-094",
+    "name": "Studio Universal",
+    "url": "https://rdcanais.net/studiouniversal",
+    "group": "FILMES & SÉRIES"
+  },
+  {
     "id": "ch-095",
     "name": "Universal TV",
-    "url": "https://rdcanais.net/universal",
+    "url": "http://tjtor8411.com:80/Osiel123/Felicidade321/72336.ts",
     "group": "FILMES & SÉRIES"
   },
   {
@@ -593,13 +599,13 @@ export const DEFAULT_CHANNELS: Channel[] = [
   {
     "id": "ch-100",
     "name": "Disney Channel",
-    "url": "https://alerquina54105.embedtv.lat/disney",
+    "url": "http://up.kiwi/351921603109/34939156/1260678.ts",
     "group": "INFANTIS"
   },
   {
     "id": "ch-101",
     "name": "Disney Junior",
-    "url": "https://alerquina54105.embedtv.lat/disneyjunior",
+    "url": "http://up.kiwi/351921603109/34939156/1260679.ts",
     "group": "INFANTIS"
   },
   {
@@ -615,6 +621,12 @@ export const DEFAULT_CHANNELS: Channel[] = [
     "group": "INFANTIS"
   },
   {
+    "id": "ch-104",
+    "name": "Nickelodeon",
+    "url": "https://stmv2.srvif.com/nicktoons/nicktoons/playlist.m3u8",
+    "group": "INFANTIS"
+  },
+  {
     "id": "ch-105",
     "name": "Tooncast",
     "url": "https://v1.rdse.rest/tooncast",
@@ -622,158 +634,164 @@ export const DEFAULT_CHANNELS: Channel[] = [
   },
   {
     "id": "ch-106",
+    "name": "Ra Tim Bum",
+    "url": "http://up.kiwi/351921603109/34939156/296384.ts",
+    "group": "INFANTIS"
+  },
+  {
+    "id": "ch-107",
     "name": "Zoomoo",
     "url": "https://alerquina54105.embedtv.lat/zoomoo",
     "group": "INFANTIS"
   },
   {
-    "id": "ch-107",
+    "id": "ch-108",
     "name": "Bis",
     "url": "https://rdcanais.net/bis",
     "group": "MÚSICA"
   },
   {
-    "id": "ch-108",
+    "id": "ch-109",
     "name": "MTV",
     "url": "https://alerquina54105.embedtv.lat/mtv",
     "group": "MÚSICA"
   },
   {
-    "id": "ch-109",
+    "id": "ch-110",
     "name": "MTV Live",
     "url": "https://v1.rdse.rest/mtv",
     "group": "MÚSICA"
   },
   {
-    "id": "ch-110",
+    "id": "ch-111",
     "name": "Music Box Brasil",
     "url": "https://v1.rdse.rest/musicbox",
     "group": "MÚSICA"
   },
   {
-    "id": "ch-111",
+    "id": "ch-112",
     "name": "BandNews",
     "url": "https://alerquina54105.embedtv.lat/bandnews",
     "group": "NOTÍCIAS"
   },
   {
-    "id": "ch-112",
+    "id": "ch-113",
     "name": "CNN Brasil",
     "url": "https://rdcanais.net/cnnbrasil",
     "group": "NOTÍCIAS"
   },
   {
-    "id": "ch-113",
+    "id": "ch-114",
     "name": "GloboNews",
     "url": "https://rdcanais.net/globonews",
     "group": "NOTÍCIAS"
   },
   {
-    "id": "ch-114",
+    "id": "ch-115",
     "name": "Jovem Pan News",
     "url": "https://alerquina54105.embedtv.lat/jovempan",
     "group": "NOTÍCIAS"
   },
   {
-    "id": "ch-115",
+    "id": "ch-116",
     "name": "Record News",
     "url": "https://rdcanais.net/recordnews",
     "group": "NOTÍCIAS"
   },
   {
-    "id": "ch-116",
+    "id": "ch-117",
     "name": "Canção Nova",
     "url": "https://alerquina54105.embedtv.lat/cancaonova",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-117",
+    "id": "ch-118",
     "name": "Gospel Movies",
     "url": "https://alerquina54105.embedtv.lat/gospelmovies",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-118",
+    "id": "ch-119",
+    "name": "Gospel Music",
+    "url": "https://stmv1.srvif.com/gmusic/gmusic/playlist.m3u8",
+    "group": "RELIGIOSOS"
+  },
+  {
+    "id": "ch-120",
     "name": "Novo Tempo",
     "url": "https://alerquina54105.embedtv.lat/novotempo",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-119",
+    "id": "ch-121",
     "name": "Rede Gospel",
     "url": "https://v1.rdse.rest/redegospel",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-120",
+    "id": "ch-122",
     "name": "Rede Século 21",
     "url": "https://v1.rdse.rest/redeseculo21",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-121",
+    "id": "ch-123",
     "name": "Rede Super",
     "url": "https://v1.rdse.rest/redesuper",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-122",
+    "id": "ch-124",
     "name": "Rede Vida",
     "url": "https://alerquina54105.embedtv.lat/redevida",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-123",
+    "id": "ch-125",
     "name": "TV Aparecida",
     "url": "https://alerquina54105.embedtv.lat/aparecida",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-124",
+    "id": "ch-126",
     "name": "TV Pai Eterno",
     "url": "https://alerquina54105.embedtv.lat/tvpaieerno",
     "group": "RELIGIOSOS"
   },
   {
-    "id": "ch-125",
+    "id": "ch-127",
     "name": "Comedy Central",
     "url": "https://alerquina54105.embedtv.lat/comedycentral",
     "group": "VARIEDADES"
   },
   {
-    "id": "ch-126",
+    "id": "ch-128",
     "name": "E!",
     "url": "https://alerquina54105.embedtv.lat/ei",
     "group": "VARIEDADES"
   },
   {
-    "id": "ch-127",
+    "id": "ch-129",
     "name": "GNT",
     "url": "https://rdcanais.net/gnt",
     "group": "VARIEDADES"
   },
   {
-    "id": "ch-128",
+    "id": "ch-130",
     "name": "Multishow",
     "url": "https://rdcanais.net/multishow",
     "group": "VARIEDADES"
   },
   {
-    "id": "ch-129",
+    "id": "ch-131",
     "name": "TNT Novelas",
     "url": "https://rdcanais.net/tntnovelas",
     "group": "VARIEDADES"
   },
   {
-    "id": "ch-130",
+    "id": "ch-132",
     "name": "Viva",
     "url": "https://v1.rdse.rest/globoplaynovelas",
-    "group": "VARIEDADES"
-  },
-  {
-    "id": "ch-131",
-    "name": "Woohoo",
-    "url": "https://v1.rdse.rest/woohoo",
     "group": "VARIEDADES"
   }
 ];

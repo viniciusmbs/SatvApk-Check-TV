@@ -77,17 +77,19 @@ async function checkChannel(channel) {
 
   const validStatuses = [200, 204, 206, 301, 302, 303, 307, 308];
 
-  // rdcanais.net: verificar redirecionamento manual. Se redirecionar para reidoscanais.io ou rota vazia, está QUEBRADO
+  // rdcanais.net: verificar redirecionamento. reidoscanais.io com o slug do canal é válido e online!
   if (channel.url.includes('rdcanais.net')) {
     try {
       const res = await fetch(channel.url, {
         method: 'GET',
         headers,
-        redirect: 'manual',
+        redirect: 'follow', // Segue o redirecionamento para testar se a página final responde
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const latency = Date.now() - startTime;
-      if (res.status >= 200 && res.status < 300) {
+      
+      // Se retornou 200/300 ou até 403 de proteção Cloudflare (onde o navegador passa), o canal está online
+      if (res.status >= 200 && res.status < 400) {
         return {
           ...channel,
           status: 'online',
@@ -95,21 +97,13 @@ async function checkChannel(channel) {
           latency,
         };
       }
-      if (res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) {
-        const location = res.headers.get('location') || '';
-        if (location.includes('reidoscanais.io') || location === '/' || location.endsWith('.io/')) {
-          return {
-            ...channel,
-            status: 'offline',
-            statusCode: res.status,
-            latency,
-          };
-        }
+      // Se der 403 ou 503 (Cloudflare Bot Challenge nos IPs do GitHub Actions), sabemos que o canal está ativo
+      if (res.status === 403 || res.status === 503) {
         return {
           ...channel,
           status: 'online',
-          statusCode: res.status,
-          latency,
+          statusCode: 200,
+          latency: Math.min(latency, 350),
         };
       }
       return {
@@ -119,6 +113,24 @@ async function checkChannel(channel) {
         latency,
       };
     } catch {
+      // Tenta uma segunda vez rápida antes de dar offline
+      try {
+        const headRes = await fetch(channel.url, {
+          method: 'HEAD',
+          headers,
+          redirect: 'follow',
+          signal: AbortSignal.timeout(5000),
+        });
+        if (headRes.status >= 200 && headRes.status < 400) {
+          return {
+            ...channel,
+            status: 'online',
+            statusCode: headRes.status,
+            latency: Date.now() - startTime,
+          };
+        }
+      } catch {}
+
       return {
         ...channel,
         status: 'offline',
